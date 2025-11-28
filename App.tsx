@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Center, FilterState } from './types';
-import { MOCK_CENTERS } from './constants';
-import Header from './components/Header';
-import TeacherForm from './components/TeacherForm';
-import SearchFilters from './components/SearchFilters';
-import CenterTable from './components/CenterTable';
-import SelectedList from './components/SelectedList';
+import { Center, FilterState } from './types.ts';
+import { MOCK_CENTERS } from './constants.ts';
+import Header from './components/Header.tsx';
+import TeacherForm from './components/TeacherForm.tsx';
+import SearchFilters from './components/SearchFilters.tsx';
+import CenterTable from './components/CenterTable.tsx';
+import SelectedList from './components/SelectedList.tsx';
 
 const App: React.FC = () => {
   // State

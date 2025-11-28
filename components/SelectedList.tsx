@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle } from 'lucide-react';
-import { Center } from '../types';
+import { Center } from '../types.ts';
 
 interface SelectedListProps {
   selectedCenters: Center[];

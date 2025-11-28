@@ -1,4 +1,4 @@
-import { Center } from './types';
+import { Center } from './types.ts';
 
 export const MOCK_CENTERS: Center[] = [
   { id: '1', code: '28001234', name: 'IES Ramiro de Maeztu', zone: 'Madrid Centro' },

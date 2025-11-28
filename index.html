@@ -1,59 +1,463 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestión de Prácticas</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Prácticas Docentes</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS for Excel export -->
+    
+    <!-- SheetJS (Excel) -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Babel Standalone (para compilar React en el navegador) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Configuración Tailwind -->
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              corporate: {
-                blue: '#26B2DD', // Light/Accent Blue
-                dark: '#3A445D', // Dark Blue
-              }
-            },
-            fontFamily: {
-              sans: ['Roboto', 'Open Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        corporate: {
+                            blue: '#26B2DD', // Azul Acento
+                            dark: '#3A445D', // Azul Oscuro
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'Open Sans', 'system-ui', 'sans-serif'],
+                    }
+                }
             }
-          }
         }
-      }
     </script>
+
     <style>
-      /* Custom scrollbar for better aesthetics */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8; 
-      }
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        body { background-color: #ffffff; }
     </style>
-  <script type="importmap">
+
+    <!-- Import Map para React y Lucide -->
+    <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
 </head>
-  <body class="bg-gray-50 text-slate-800 antialiased h-screen overflow-hidden flex flex-col">
+<body class="text-slate-800 antialiased h-screen overflow-hidden flex flex-col">
+    
     <div id="root" class="flex-1 flex flex-col h-full"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+    <!-- LÓGICA DE LA APLICACIÓN -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useMemo } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { 
+            GraduationCap, User, AlertCircle, Search, MapPin, Hash, 
+            School, Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle 
+        } from 'lucide-react';
+
+        // --- DATOS MOCK ---
+        const MOCK_CENTERS = [
+            { id: '1', code: '28001234', name: 'IES Ramiro de Maeztu', zone: 'Madrid Centro' },
+            { id: '2', code: '28005678', name: 'CEIP San Ildefonso', zone: 'Madrid Centro' },
+            { id: '3', code: '28009101', name: 'IES Cervantes', zone: 'Embajadores' },
+            { id: '4', code: '28002345', name: 'Col. Sagrado Corazón', zone: 'Chamartín' },
+            { id: '5', code: '28006789', name: 'IES Beatriz Galindo', zone: 'Salamanca' },
+            { id: '6', code: '28003456', name: 'CEIP Escuelas Bosque', zone: 'Moncloa' },
+            { id: '7', code: '28007890', name: 'IES Isabel la Católica', zone: 'Retiro' },
+            { id: '8', code: '28004567', name: 'IES Juan de la Cierva', zone: 'Arganzuela' },
+            { id: '9', code: '28008901', name: 'Col. Estudio', zone: 'Aravaca' },
+            { id: '10', code: '28005612', name: 'IES San Isidro', zone: 'Centro' },
+            { id: '11', code: '28001122', name: 'CEIP Rufino Blanco', zone: 'Chamberí' },
+            { id: '12', code: '28003344', name: 'IES Lope de Vega', zone: 'Centro' },
+            { id: '13', code: '28005566', name: 'Col. Nuestra Señora del Pilar', zone: 'Salamanca' },
+            { id: '14', code: '28007788', name: 'IES Gran Capitán', zone: 'Hortaleza' },
+            { id: '15', code: '28009900', name: 'CEIP Patriarca Obispo Eijo Garay', zone: 'Chamartín' },
+            { id: '16', code: '28002233', name: 'IES Conde de Orgaz', zone: 'Hortaleza' },
+            { id: '17', code: '28004455', name: 'IES Arturo Soria', zone: 'Ciudad Lineal' },
+            { id: '18', code: '28006677', name: 'CEIP San Juan Bautista', zone: 'Ciudad Lineal' },
+            { id: '19', code: '28008899', name: 'IES Alameda de Osuna', zone: 'Barajas' },
+            { id: '20', code: '28000011', name: 'Col. Liceo Francés', zone: 'Hortaleza' },
+            { id: '21', code: '28001100', name: 'IES Vista Alegre', zone: 'Carabanchel' },
+            { id: '22', code: '28002211', name: 'CEIP Pinar de San José', zone: 'Carabanchel' },
+            { id: '23', code: '28003322', name: 'IES Calderón de la Barca', zone: 'Pinchon' },
+            { id: '24', code: '28004433', name: 'IES Gregorio Marañón', zone: 'Caminos' },
+            { id: '25', code: '28005544', name: 'Col. Retamar', zone: 'Pozuelo' },
+            { id: '26', code: '28006655', name: 'IES Sor Juana de la Cruz', zone: 'Cubas' },
+            { id: '27', code: '28007766', name: 'CEIP Miguel de Cervantes', zone: 'Leganés' },
+            { id: '28', code: '28008877', name: 'IES Julio Verne', zone: 'Leganés' },
+            { id: '29', code: '28009988', name: 'IES Severo Ochoa', zone: 'Alcobendas' },
+            { id: '30', code: '28001010', name: 'Col. Base', zone: 'Alcobendas' }
+        ];
+
+        // --- COMPONENTES ---
+
+        // 1. Header
+        const Header = () => (
+            <header className="bg-corporate-dark text-white px-6 py-4 shadow-md flex items-center gap-3 shrink-0 z-50 relative">
+                <div className="p-2 bg-corporate-blue rounded-lg">
+                    <GraduationCap size={24} className="text-white" />
+                </div>
+                <div>
+                    <h1 className="text-xl font-semibold tracking-wide">Portal de Gestión Docente</h1>
+                    <p className="text-xs text-gray-300 font-light">Selección de Centros de Prácticas</p>
+                </div>
+            </header>
+        );
+
+        // 2. TeacherForm
+        const TeacherForm = ({ teacherName, setTeacherName, hasError }) => (
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+                <h2 className="text-corporate-dark font-semibold mb-4 flex items-center gap-2 border-b pb-2">
+                    <User size={18} className="text-corporate-blue" />
+                    Datos del Profesor
+                </h2>
+                <div className="flex flex-col">
+                    <label htmlFor="teacherName" className="text-sm font-medium text-gray-600 mb-1">
+                        Nombre y Apellidos <span className="text-red-500 font-bold" title="Campo obligatorio">*</span>
+                    </label>
+                    <div className="relative w-full md:w-1/2">
+                        <input
+                            id="teacherName"
+                            type="text"
+                            required
+                            value={teacherName}
+                            onChange={(e) => setTeacherName(e.target.value)}
+                            placeholder="Ej: María García López"
+                            className={`w-full p-2 border rounded bg-white text-gray-900 outline-none transition-all ${
+                                hasError 
+                                    ? 'border-red-500 ring-1 ring-red-500 focus:border-red-500' 
+                                    : 'border-gray-300 focus:ring-2 focus:ring-corporate-blue focus:border-transparent'
+                            }`}
+                        />
+                        {hasError && (
+                            <div className="absolute right-3 top-2.5 text-red-500 animate-pulse">
+                                <AlertCircle size={18} />
+                            </div>
+                        )}
+                    </div>
+                    {hasError && (
+                        <p className="text-red-500 text-xs mt-1 font-medium">
+                            Este campo es obligatorio para poder exportar.
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+
+        // 3. SearchFilters
+        const SearchFilters = ({ filters, setFilters }) => {
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFilters(prev => ({ ...prev, [name]: value }));
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
+                    <h2 className="text-corporate-dark font-semibold mb-4 flex items-center gap-2 border-b pb-2">
+                        <Search size={18} className="text-corporate-blue" />
+                        Buscador de Centros
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {['Nombre del Centro', 'Zona / Distrito', 'Código de Centro'].map((label, idx) => {
+                            const name = ['name', 'zone', 'code'][idx];
+                            const placeholder = ['Buscar por nombre...', 'Ej: Centro, Hortaleza...', 'Ej: 2800...'][idx];
+                            const Icon = [School, MapPin, Hash][idx];
+                            
+                            return (
+                                <div key={name} className="relative">
+                                    <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">{label}</label>
+                                    <div className="relative">
+                                        <Icon size={16} className="absolute left-3 top-3 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            name={name}
+                                            value={filters[name]}
+                                            onChange={handleChange}
+                                            placeholder={placeholder}
+                                            className="w-full pl-9 p-2 border border-gray-300 rounded text-sm bg-white text-gray-900 focus:ring-1 focus:ring-corporate-blue focus:border-corporate-blue outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. CenterTable
+        const CenterTable = ({ centers, selectedIds, onAdd }) => (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-[400px]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h2 className="text-corporate-dark font-semibold flex items-center gap-2">
+                        <School size={18} className="text-corporate-blue" />
+                        Resultados ({centers.length})
+                    </h2>
+                </div>
+                
+                <div className="overflow-auto flex-1">
+                    <table className="w-full text-left text-sm text-gray-600">
+                        <thead className="bg-gray-100 text-gray-700 uppercase font-bold text-xs sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th className="px-6 py-3 tracking-wider">Código</th>
+                                <th className="px-6 py-3 tracking-wider">Nombre</th>
+                                <th className="px-6 py-3 tracking-wider">Zona</th>
+                                <th className="px-6 py-3 tracking-wider text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {centers.length > 0 ? (
+                                centers.map((center) => {
+                                    const isSelected = selectedIds.has(center.id);
+                                    return (
+                                        <tr key={center.id} className={`hover:bg-blue-50 transition-colors ${isSelected ? 'bg-gray-50 opacity-60' : ''}`}>
+                                            <td className="px-6 py-3 font-mono text-gray-500">{center.code}</td>
+                                            <td className="px-6 py-3 font-medium text-corporate-dark">{center.name}</td>
+                                            <td className="px-6 py-3">{center.zone}</td>
+                                            <td className="px-6 py-3 text-right">
+                                                <button
+                                                    onClick={() => onAdd(center)}
+                                                    disabled={isSelected}
+                                                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide transition-all ${
+                                                        isSelected
+                                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                            : 'bg-corporate-blue text-white hover:bg-sky-600 shadow-sm'
+                                                    }`}
+                                                >
+                                                    {isSelected ? 'Añadido' : <><Plus size={14} /> Añadir</>}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            ) : (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-10 text-center text-gray-400 italic">
+                                        No se han encontrado centros con los filtros actuales.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        // 5. SelectedList
+        const SelectedList = ({ selectedCenters, onRemove, onMove, onExport }) => {
+            const maxCenters = 15;
+            const count = selectedCenters.length;
+
+            return (
+                <div className="bg-white h-full flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.1)] border-l border-gray-200 w-full">
+                    {/* Header Blanco para evitar conflicto visual */}
+                    <div className="p-5 border-b border-gray-200 bg-white shrink-0">
+                        <h3 className="font-semibold text-lg flex items-center justify-between text-corporate-dark">
+                            Centros Seleccionados
+                            <span className={`text-xs px-2 py-1 rounded-full text-white ${count === maxCenters ? 'bg-red-500' : 'bg-corporate-blue'}`}>
+                                {count}/{maxCenters}
+                            </span>
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">Orden de preferencia para la asignación.</p>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                        {count === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center p-4">
+                                <CheckCircle size={48} className="mb-2 opacity-20" />
+                                <p className="text-sm">No hay centros seleccionados.</p>
+                                <p className="text-xs mt-1">Añade centros desde la tabla de la izquierda.</p>
+                            </div>
+                        ) : (
+                            selectedCenters.map((center, index) => (
+                                <div key={center.id} className="group bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-2 relative">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-2">
+                                            <div className="bg-corporate-blue text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full shrink-0">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-sm text-corporate-dark leading-tight">{center.name}</h4>
+                                                <div className="flex gap-2 text-xs text-gray-500 mt-0.5">
+                                                    <span className="bg-gray-100 px-1 rounded font-mono">{center.code}</span>
+                                                    <span>{center.zone}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => onRemove(center.id)}
+                                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex justify-end gap-1 mt-1 border-t border-gray-100 pt-2">
+                                        <button 
+                                            onClick={() => onMove(index, 'up')}
+                                            disabled={index === 0}
+                                            className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
+                                        >
+                                            <ArrowUp size={16} />
+                                        </button>
+                                        <button 
+                                            onClick={() => onMove(index, 'down')}
+                                            disabled={index === count - 1}
+                                            className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
+                                        >
+                                            <ArrowDown size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="p-4 bg-white border-t border-gray-200 shrink-0">
+                        <button
+                            onClick={onExport}
+                            disabled={count === 0}
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]"
+                        >
+                            <FileDown size={20} />
+                            Finalizar y Exportar a Excel
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APP PRINCIPAL ---
+        const App = () => {
+            const [teacherName, setTeacherName] = useState('');
+            const [nameError, setNameError] = useState(false);
+            const [selectedCenters, setSelectedCenters] = useState([]);
+            const [filters, setFilters] = useState({ name: '', zone: '', code: '' });
+
+            const handleNameChange = (name) => {
+                setTeacherName(name);
+                if (nameError && name.trim().length > 0) setNameError(false);
+            };
+
+            const filteredCenters = useMemo(() => {
+                return MOCK_CENTERS.filter(center => {
+                    const matchName = center.name.toLowerCase().includes(filters.name.toLowerCase());
+                    const matchZone = center.zone.toLowerCase().includes(filters.zone.toLowerCase());
+                    const matchCode = center.code.includes(filters.code);
+                    return matchName && matchZone && matchCode;
+                });
+            }, [filters]);
+
+            const selectedIds = useMemo(() => new Set(selectedCenters.map(c => c.id)), [selectedCenters]);
+
+            const handleAddCenter = (center) => {
+                if (selectedCenters.length >= 15) {
+                    alert("Has alcanzado el límite máximo de 15 centros.");
+                    return;
+                }
+                if (selectedIds.has(center.id)) return;
+                setSelectedCenters(prev => [...prev, center]);
+            };
+
+            const handleRemoveCenter = (id) => {
+                setSelectedCenters(prev => prev.filter(c => c.id !== id));
+            };
+
+            const handleMoveCenter = (index, direction) => {
+                if ((direction === 'up' && index === 0) || (direction === 'down' && index === selectedCenters.length - 1)) return;
+                const newCenters = [...selectedCenters];
+                const targetIndex = direction === 'up' ? index - 1 : index + 1;
+                [newCenters[index], newCenters[targetIndex]] = [newCenters[targetIndex], newCenters[index]];
+                setSelectedCenters(newCenters);
+            };
+
+            const handleExportExcel = () => {
+                if (!teacherName.trim()) {
+                    setNameError(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    alert("El nombre del profesor es obligatorio.");
+                    return;
+                }
+                if (selectedCenters.length === 0) {
+                    alert("Selecciona al menos un centro.");
+                    return;
+                }
+
+                const XLSX = window.XLSX;
+                if (!XLSX) {
+                    alert("Error: Librería Excel no cargada.");
+                    return;
+                }
+
+                const data = [
+                    ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
+                    ["Profesor:", teacherName],
+                    ["Fecha:", new Date().toLocaleDateString()],
+                    [],
+                    ["Orden", "Código", "Nombre del Centro", "Zona"]
+                ];
+
+                selectedCenters.forEach((center, index) => {
+                    data.push([index + 1, center.code, center.name, center.zone]);
+                });
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                ws['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 40 }, { wch: 20 }];
+                
+                XLSX.utils.book_append_sheet(wb, ws, "Selección");
+                const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                XLSX.writeFile(wb, `practicas_${safeName}.xlsx`);
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-gray-50 font-sans">
+                    <Header />
+                    <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+                            <div className="p-6 h-full flex flex-col overflow-y-auto">
+                                <TeacherForm 
+                                    teacherName={teacherName} 
+                                    setTeacherName={handleNameChange} 
+                                    hasError={nameError}
+                                />
+                                <SearchFilters filters={filters} setFilters={setFilters} />
+                                <CenterTable 
+                                    centers={filteredCenters} 
+                                    selectedIds={selectedIds} 
+                                    onAdd={handleAddCenter} 
+                                />
+                            </div>
+                        </div>
+                        <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full relative z-20">
+                            <SelectedList 
+                                selectedCenters={selectedCenters}
+                                onRemove={handleRemoveCenter}
+                                onMove={handleMoveCenter}
+                                onExport={handleExportExcel}
+                            />
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>

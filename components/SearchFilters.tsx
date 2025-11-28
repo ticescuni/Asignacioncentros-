@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, MapPin, Hash, School } from 'lucide-react';
-import { FilterState } from '../types';
+import { FilterState } from '../types.ts';
 
 interface SearchFiltersProps {
   filters: FilterState;

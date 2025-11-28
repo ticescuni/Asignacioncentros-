@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, School } from 'lucide-react';
-import { Center } from '../types';
+import { Center } from '../types.ts';
 
 interface CenterTableProps {
   centers: Center[];
