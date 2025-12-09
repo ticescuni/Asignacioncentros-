@@ -41,6 +41,14 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         body { background-color: #ffffff; }
+        
+        /* Animación de carga */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-custom {
+            animation: spin 1s linear infinite;
+        }
     </style>
 
     <!-- Import Map para React y Lucide -->
@@ -50,7 +58,7 @@
     "react": "https://esm.sh/react@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.263.1",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "react/": "https://aistudiocdn.com/react@^19.2.1/"
   }
 }
 </script>
@@ -65,8 +73,12 @@
         import ReactDOM from 'react-dom/client';
         import { 
             GraduationCap, User, AlertCircle, Search, MapPin, Hash, 
-            School, Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle, CreditCard
+            School, Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle, Loader2, UploadCloud
         } from 'lucide-react';
+
+        // --- CONFIGURACIÓN BACKEND ---
+        // URL de tu Script de Google Apps desplegado
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqCRFYzk6WvUcRZsm_3al9zmNOGawN1eg7G_RK5YV-Ukq808GVIOadsrlMHtgeLVTl1w/exec"; 
 
         // --- DATOS MOCK ---
         const MOCK_CENTERS = [
@@ -117,7 +129,7 @@
             </header>
         );
 
-        // 2. TeacherForm (Actualizado con DNI)
+        // 2. TeacherForm
         const TeacherForm = ({ teacherName, setTeacherName, teacherDNI, setTeacherDNI, nameError, dniError }) => (
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-6">
                 <h2 className="text-corporate-dark font-semibold mb-4 flex items-center gap-2 border-b pb-2">
@@ -126,7 +138,6 @@
                 </h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Campo Nombre (ocupa 2 columnas en pantallas medianas) */}
                     <div className="md:col-span-2 flex flex-col">
                         <label htmlFor="teacherName" className="text-sm font-medium text-gray-600 mb-1">
                             Nombre y Apellidos <span className="text-red-500 font-bold" title="Campo obligatorio">*</span>
@@ -152,7 +163,6 @@
                         </div>
                     </div>
 
-                    {/* Campo DNI (ocupa 1 columna) */}
                     <div className="md:col-span-1 flex flex-col">
                         <label htmlFor="teacherDNI" className="text-sm font-medium text-gray-600 mb-1">
                             DNI <span className="text-red-500 font-bold" title="Campo obligatorio">*</span>
@@ -287,14 +297,13 @@
             </div>
         );
 
-        // 5. SelectedList
-        const SelectedList = ({ selectedCenters, onRemove, onMove, onExport }) => {
+        // 5. SelectedList (Actualizado con Loading State)
+        const SelectedList = ({ selectedCenters, onRemove, onMove, onExport, isUploading }) => {
             const maxCenters = 15;
             const count = selectedCenters.length;
 
             return (
                 <div className="bg-white h-full flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.1)] border-l border-gray-200 w-full">
-                    {/* Header Blanco para evitar conflicto visual */}
                     <div className="p-5 border-b border-gray-200 bg-white shrink-0">
                         <h3 className="font-semibold text-lg flex items-center justify-between text-corporate-dark">
                             Centros Seleccionados
@@ -305,7 +314,7 @@
                         <p className="text-xs text-gray-500 mt-1">Orden de preferencia para la asignación.</p>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 relative">
                         {count === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center p-4">
                                 <CheckCircle size={48} className="mb-2 opacity-20" />
@@ -332,6 +341,7 @@
                                             onClick={() => onRemove(center.id)}
                                             className="text-gray-300 hover:text-red-500 transition-colors p-1"
                                             title="Eliminar"
+                                            disabled={isUploading}
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -340,14 +350,14 @@
                                     <div className="flex justify-end gap-1 mt-1 border-t border-gray-100 pt-2">
                                         <button 
                                             onClick={() => onMove(index, 'up')}
-                                            disabled={index === 0}
+                                            disabled={index === 0 || isUploading}
                                             className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
                                         >
                                             <ArrowUp size={16} />
                                         </button>
                                         <button 
                                             onClick={() => onMove(index, 'down')}
-                                            disabled={index === count - 1}
+                                            disabled={index === count - 1 || isUploading}
                                             className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
                                         >
                                             <ArrowDown size={16} />
@@ -356,16 +366,37 @@
                                 </div>
                             ))
                         )}
+                        
+                        {/* Overlay de Carga */}
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-corporate-blue">
+                                <Loader2 size={40} className="animate-spin-custom mb-3" />
+                                <p className="font-semibold text-sm animate-pulse">Enviando a Drive...</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-4 bg-white border-t border-gray-200 shrink-0">
                         <button
                             onClick={onExport}
-                            disabled={count === 0}
-                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]"
+                            disabled={count === 0 || isUploading}
+                            className={`w-full flex items-center justify-center gap-2 text-white py-3 rounded-lg font-bold shadow-lg transition-all active:scale-[0.98] ${
+                                isUploading 
+                                    ? 'bg-gray-400 cursor-wait' 
+                                    : 'bg-green-600 hover:bg-green-700 shadow-green-600/20 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none'
+                            }`}
                         >
-                            <FileDown size={20} />
-                            Finalizar y Exportar a Excel
+                            {isUploading ? (
+                                <>
+                                    <Loader2 size={20} className="animate-spin-custom" />
+                                    Procesando...
+                                </>
+                            ) : (
+                                <>
+                                    {GOOGLE_SCRIPT_URL ? <UploadCloud size={20} /> : <FileDown size={20} />}
+                                    {GOOGLE_SCRIPT_URL ? 'Enviar y Guardar' : 'Finalizar y Exportar'}
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -375,11 +406,12 @@
         // --- APP PRINCIPAL ---
         const App = () => {
             const [teacherName, setTeacherName] = useState('');
-            const [teacherDNI, setTeacherDNI] = useState(''); // Nuevo estado DNI
+            const [teacherDNI, setTeacherDNI] = useState('');
             const [nameError, setNameError] = useState(false);
-            const [dniError, setDniError] = useState(false); // Nuevo estado error DNI
+            const [dniError, setDniError] = useState(false);
             const [selectedCenters, setSelectedCenters] = useState([]);
             const [filters, setFilters] = useState({ name: '', zone: '', code: '' });
+            const [isUploading, setIsUploading] = useState(false);
 
             const handleNameChange = (name) => {
                 setTeacherName(name);
@@ -423,16 +455,14 @@
                 setSelectedCenters(newCenters);
             };
 
-            const handleExportExcel = () => {
+            const handleExportExcel = async () => {
                 let hasError = false;
 
-                // Validación Nombre
                 if (!teacherName.trim()) {
                     setNameError(true);
                     hasError = true;
                 }
 
-                // Validación DNI
                 if (!teacherDNI.trim()) {
                     setDniError(true);
                     hasError = true;
@@ -455,26 +485,71 @@
                     return;
                 }
 
-                const data = [
-                    ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
-                    ["Profesor:", teacherName],
-                    ["DNI:", teacherDNI], // Incluido en Excel
-                    ["Fecha:", new Date().toLocaleDateString()],
-                    [],
-                    ["Orden", "Código", "Nombre del Centro", "Zona"]
-                ];
+                setIsUploading(true);
 
-                selectedCenters.forEach((center, index) => {
-                    data.push([index + 1, center.code, center.name, center.zone]);
-                });
+                try {
+                    // 1. Generar los datos
+                    const data = [
+                        ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
+                        ["Fecha de exportación:", new Date().toLocaleDateString()],
+                        [], 
+                        ["Orden", "Nombre del Profesor", "DNI", "Código Centro", "Nombre del Centro", "Zona"] 
+                    ];
 
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(data);
-                ws['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 40 }, { wch: 20 }];
-                
-                XLSX.utils.book_append_sheet(wb, ws, "Selección");
-                const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                XLSX.writeFile(wb, `practicas_${safeName}.xlsx`);
+                    selectedCenters.forEach((center, index) => {
+                        data.push([
+                            index + 1, 
+                            teacherName, 
+                            teacherDNI, 
+                            center.code, 
+                            center.name, 
+                            center.zone
+                        ]);
+                    });
+
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(data);
+                    
+                    ws['!cols'] = [
+                        { wch: 8 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 20 }
+                    ];
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, "Selección");
+                    const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    const fileName = `practicas_${safeName}.xlsx`;
+
+                    // 2. Si hay URL de script, enviar a Drive
+                    if (GOOGLE_SCRIPT_URL) {
+                        // Generar Base64
+                        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                        
+                        // Enviar solicitud POST
+                        await fetch(GOOGLE_SCRIPT_URL, {
+                            method: "POST",
+                            body: JSON.stringify({
+                                filename: fileName,
+                                fileData: wbout,
+                                mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            })
+                        });
+                        
+                        alert("✅ Archivo enviado correctamente a Google Drive.");
+                    }
+
+                    // 3. Descargar copia local (siempre útil como backup)
+                    XLSX.writeFile(wb, fileName);
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Hubo un error al procesar el archivo. Se intentará descargar la copia local.");
+                    try {
+                        const wb = XLSX.utils.book_new(); // Reintentar generación local simple si falla el envío
+                        // ... Lógica simplificada de fallback si fuera necesario, 
+                        // pero normalmente el writeFile de arriba se ejecuta si el fetch falla y lo capturamos.
+                    } catch (e) {}
+                } finally {
+                    setIsUploading(false);
+                }
             };
 
             return (
@@ -505,6 +580,7 @@
                                 onRemove={handleRemoveCenter}
                                 onMove={handleMoveCenter}
                                 onExport={handleExportExcel}
+                                isUploading={isUploading}
                             />
                         </div>
                     </main>

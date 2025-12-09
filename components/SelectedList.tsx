@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle } from 'lucide-react';
+import { Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle, Loader2, UploadCloud } from 'lucide-react';
 import { Center } from '../types.ts';
 
 interface SelectedListProps {
@@ -7,15 +7,24 @@ interface SelectedListProps {
   onRemove: (id: string) => void;
   onMove: (index: number, direction: 'up' | 'down') => void;
   onExport: () => void;
+  isUploading: boolean;
+  hasBackend: boolean;
 }
 
-const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, onMove, onExport }) => {
+const SelectedList: React.FC<SelectedListProps> = ({ 
+  selectedCenters, 
+  onRemove, 
+  onMove, 
+  onExport, 
+  isUploading, 
+  hasBackend 
+}) => {
   const maxCenters = 15;
   const count = selectedCenters.length;
 
   return (
     <div className="bg-white h-full flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.1)] border-l border-gray-200 w-full">
-      {/* Sidebar Header - Changed to White for visual separation */}
+      {/* Sidebar Header */}
       <div className="p-5 border-b border-gray-200 bg-white shrink-0">
         <h3 className="font-semibold text-lg flex items-center justify-between text-corporate-dark">
           Centros Seleccionados
@@ -27,7 +36,7 @@ const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, 
       </div>
 
       {/* List Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 relative">
         {count === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center p-4">
             <CheckCircle size={48} className="mb-2 opacity-20" />
@@ -57,6 +66,7 @@ const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, 
                   onClick={() => onRemove(center.id)}
                   className="text-gray-300 hover:text-red-500 transition-colors p-1"
                   title="Eliminar"
+                  disabled={isUploading}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -66,7 +76,7 @@ const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, 
               <div className="flex justify-end gap-1 mt-1 border-t border-gray-100 pt-2">
                 <button 
                     onClick={() => onMove(index, 'up')}
-                    disabled={index === 0}
+                    disabled={index === 0 || isUploading}
                     className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
                     title="Subir prioridad"
                 >
@@ -74,7 +84,7 @@ const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, 
                 </button>
                 <button 
                     onClick={() => onMove(index, 'down')}
-                    disabled={index === count - 1}
+                    disabled={index === count - 1 || isUploading}
                     className="p-1 text-gray-400 hover:text-corporate-blue disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-50 rounded"
                     title="Bajar prioridad"
                 >
@@ -84,17 +94,38 @@ const SelectedList: React.FC<SelectedListProps> = ({ selectedCenters, onRemove, 
             </div>
           ))
         )}
+
+        {/* Overlay de Carga */}
+        {isUploading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-corporate-blue">
+                <Loader2 size={40} className="animate-spin-custom mb-3" />
+                <p className="font-semibold text-sm animate-pulse">Enviando a Drive...</p>
+            </div>
+        )}
       </div>
 
       {/* Footer Action */}
       <div className="p-4 bg-white border-t border-gray-200 shrink-0">
         <button
           onClick={onExport}
-          disabled={count === 0}
-          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]"
+          disabled={count === 0 || isUploading}
+          className={`w-full flex items-center justify-center gap-2 text-white py-3 rounded-lg font-bold shadow-lg transition-all active:scale-[0.98] ${
+            isUploading 
+                ? 'bg-gray-400 cursor-wait' 
+                : 'bg-green-600 hover:bg-green-700 shadow-green-600/20 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none'
+          }`}
         >
-          <FileDown size={20} />
-          Finalizar y Exportar a Excel
+          {isUploading ? (
+            <>
+                <Loader2 size={20} className="animate-spin-custom" />
+                Procesando...
+            </>
+          ) : (
+            <>
+                {hasBackend ? <UploadCloud size={20} /> : <FileDown size={20} />}
+                {hasBackend ? 'Enviar y Guardar' : 'Finalizar y Exportar'}
+            </>
+          )}
         </button>
       </div>
     </div>

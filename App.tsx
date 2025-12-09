@@ -7,23 +7,33 @@ import SearchFilters from './components/SearchFilters.tsx';
 import CenterTable from './components/CenterTable.tsx';
 import SelectedList from './components/SelectedList.tsx';
 
+// --- CONFIGURACIÓN BACKEND ---
+// URL de tu Script de Google Apps desplegado
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqCRFYzk6WvUcRZsm_3al9zmNOGawN1eg7G_RK5YV-Ukq808GVIOadsrlMHtgeLVTl1w/exec"; 
+
 const App: React.FC = () => {
   // State
   const [teacherName, setTeacherName] = useState<string>('');
-  const [nameError, setNameError] = useState<boolean>(false); // Estado para el error de validación
+  const [teacherDNI, setTeacherDNI] = useState<string>('');
+  const [nameError, setNameError] = useState<boolean>(false);
+  const [dniError, setDniError] = useState<boolean>(false);
   const [selectedCenters, setSelectedCenters] = useState<Center[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     name: '',
     zone: '',
     code: '',
   });
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
-  // Wrapper para limpiar el error cuando el usuario escribe
+  // Handlers
   const handleNameChange = (name: string) => {
     setTeacherName(name);
-    if (nameError && name.trim().length > 0) {
-      setNameError(false);
-    }
+    if (nameError && name.trim().length > 0) setNameError(false);
+  };
+
+  const handleDNIChange = (dni: string) => {
+    setTeacherDNI(dni);
+    if (dniError && dni.trim().length > 0) setDniError(false);
   };
 
   // Derived State: Filtered Centers
@@ -36,19 +46,14 @@ const App: React.FC = () => {
     });
   }, [filters]);
 
-  // Derived State: Set of selected IDs for fast lookup
-  const selectedIds = useMemo(() => {
-    return new Set(selectedCenters.map(c => c.id));
-  }, [selectedCenters]);
+  const selectedIds = useMemo(() => new Set(selectedCenters.map(c => c.id)), [selectedCenters]);
 
-  // Handlers
   const handleAddCenter = (center: Center) => {
     if (selectedCenters.length >= 15) {
       alert("Has alcanzado el límite máximo de 15 centros.");
       return;
     }
     if (selectedIds.has(center.id)) return;
-    
     setSelectedCenters(prev => [...prev, center]);
   };
 
@@ -59,23 +64,28 @@ const App: React.FC = () => {
   const handleMoveCenter = (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === selectedCenters.length - 1) return;
-
     const newCenters = [...selectedCenters];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    // Swap
     [newCenters[index], newCenters[targetIndex]] = [newCenters[targetIndex], newCenters[index]];
-    
     setSelectedCenters(newCenters);
   };
 
-  const handleExportExcel = () => {
-    // Validación estricta del nombre
+  const handleExportExcel = async () => {
+    let hasError = false;
+
     if (!teacherName.trim()) {
       setNameError(true);
-      // Hacemos scroll hacia arriba para que el usuario vea el error si está en móvil
+      hasError = true;
+    }
+
+    if (!teacherDNI.trim()) {
+      setDniError(true);
+      hasError = true;
+    }
+
+    if (hasError) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      alert("El nombre del profesor es obligatorio.");
+      alert("Por favor, rellene todos los campos obligatorios.");
       return;
     }
 
@@ -84,62 +94,90 @@ const App: React.FC = () => {
       return;
     }
 
-    // Using the global XLSX object from the CDN
     const XLSX = window.XLSX;
     if (!XLSX) {
       alert("Error: La librería de Excel no se ha cargado correctamente.");
       return;
     }
 
-    // Create Data Structure
-    const data: any[][] = [
-      ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
-      ["Profesor:", teacherName],
-      ["Fecha:", new Date().toLocaleDateString()],
-      [], // Empty row
-      ["Orden", "Código", "Nombre del Centro", "Zona"] // Headers
-    ];
+    setIsUploading(true);
 
-    selectedCenters.forEach((center, index) => {
-      data.push([
-        index + 1,
-        center.code,
-        center.name,
-        center.zone
-      ]);
-    });
+    try {
+        // 1. Preparar datos
+        const data: any[][] = [
+          ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
+          ["Fecha de exportación:", new Date().toLocaleDateString()],
+          [], 
+          ["Orden", "Nombre del Profesor", "DNI", "Código Centro", "Nombre del Centro", "Zona"] 
+        ];
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
+        selectedCenters.forEach((center, index) => {
+          data.push([
+            index + 1,
+            teacherName,
+            teacherDNI,
+            center.code,
+            center.name,
+            center.zone
+          ]);
+        });
 
-    // Basic styling adjustments (width)
-    const wscols = [
-      { wch: 10 }, // Order
-      { wch: 15 }, // Code
-      { wch: 40 }, // Name
-      { wch: 20 }  // Zone
-    ];
-    ws['!cols'] = wscols;
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(data);
 
-    XLSX.utils.book_append_sheet(wb, ws, "Selección");
-    
-    // Sanitize filename
-    const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    XLSX.writeFile(wb, `practicas_${safeName}.xlsx`);
+        ws['!cols'] = [
+          { wch: 8 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 20 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, "Selección");
+        
+        const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const fileName = `practicas_${safeName}.xlsx`;
+
+        // 2. Enviar a Google Apps Script (si hay URL)
+        if (GOOGLE_SCRIPT_URL) {
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+            
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    filename: fileName,
+                    fileData: wbout,
+                    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                })
+            });
+            
+            alert("✅ Archivo enviado correctamente a Google Drive.");
+        }
+
+        // 3. Descargar copia local
+        XLSX.writeFile(wb, fileName);
+
+    } catch (error) {
+        console.error(error);
+        alert("Hubo un error al procesar el archivo. Se descargará una copia local.");
+        // Fallback: intentar descargar localmente si falló el envío
+        try {
+           const wb = XLSX.utils.book_new();
+        } catch(e) {}
+    } finally {
+        setIsUploading(false);
+    }
   };
 
   return (
     <div className="flex flex-col h-full bg-gray-50 font-sans">
       <Header />
-      
       <main className="flex-1 overflow-hidden flex flex-col md:flex-row">
-        {/* Left Column: Form & Data */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
             <div className="p-6 h-full flex flex-col overflow-y-auto">
                 <TeacherForm 
                   teacherName={teacherName} 
                   setTeacherName={handleNameChange} 
-                  hasError={nameError}
+                  teacherDNI={teacherDNI}
+                  setTeacherDNI={handleDNIChange}
+                  nameError={nameError}
+                  dniError={dniError}
                 />
                 <SearchFilters filters={filters} setFilters={setFilters} />
                 <CenterTable 
@@ -150,13 +188,14 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Right Column: Sticky Sidebar */}
         <div className="w-full md:w-[350px] lg:w-[400px] shrink-0 h-full relative z-20">
           <SelectedList 
             selectedCenters={selectedCenters}
             onRemove={handleRemoveCenter}
             onMove={handleMoveCenter}
             onExport={handleExportExcel}
+            isUploading={isUploading}
+            hasBackend={!!GOOGLE_SCRIPT_URL}
           />
         </div>
       </main>
