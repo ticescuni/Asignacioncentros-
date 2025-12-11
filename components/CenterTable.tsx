@@ -60,7 +60,7 @@ const CenterTable: React.FC<CenterTableProps> = ({
                 Zona {renderSortIcon('zone')}
               </th>
               <th className={`${headerClass} text-center`} onClick={() => onSort('students')}>
-                Nº Est. {renderSortIcon('students')}
+                Nº Estudiantes. {renderSortIcon('students')}
               </th>
               <th className="px-4 py-3 tracking-wider text-right cursor-default">
                 Acción
