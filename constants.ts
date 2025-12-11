@@ -66,7 +66,6 @@ export const MOCK_CENTERS: Center[] = [
   { id: '28076319', status: 'Disponible 25-26', code: '28076319', name: 'CP EE SANTIAGO RAMON Y CAJAL', zone: 'Getafe', students: 3 },
   { id: '28012354', status: 'Disponible 25-27', code: '28012354', name: 'CPR INF-PRI-SEC JESUS MARIA', zone: 'Madrid-Salamanca', students: 11 },
   { id: '28032225', status: 'Disponible 25-28', code: '28032225', name: 'CPR INF-PRI JESUS MARIA-NUESTRA SEÑORA CARIDAD DEL COBRE', zone: 'Madrid-San Blas-Canillejas', students: 10 },
-  { id: '28014570', status: 'Disponible 25-29', code: '28014570', name: 'CPR INF-PRI-SEC SAN GABRIEL', zone: 'Madrid-Carabanchel', students: 21 },
   { id: '28044501', status: 'Disponible 25-30', code: '28044501', name: 'CEPA VISTA ALEGRE', zone: 'Madrid-Carabanchel', students: 3 },
   { id: '28019439', status: 'Disponible 25-31', code: '28019439', name: 'CP INF-PRI CIUDAD DE BADAJOZ', zone: 'Madrid-Latina', students: 1 },
   { id: '28024198', status: 'Disponible 25-32', code: '28024198', name: 'CPR INF-PRI-SEC CRISTO REY', zone: 'Rozas de Madrid, Las', students: 3 },
