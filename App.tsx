@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Center, FilterState } from './types.ts';
+import { Center, FilterState, SortConfig } from './types.ts';
 import { MOCK_CENTERS } from './constants.ts';
 import Header from './components/Header.tsx';
 import TeacherForm from './components/TeacherForm.tsx';
@@ -23,6 +23,8 @@ const App: React.FC = () => {
     zone: '',
     code: '',
   });
+  // Estado para la ordenación
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' });
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
   // Handlers
@@ -36,21 +38,41 @@ const App: React.FC = () => {
     if (dniError && dni.trim().length > 0) setDniError(false);
   };
 
-  // Derived State: Filtered Centers
+  const handleSort = (key: keyof Center) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Derived State: Filtered & Sorted Centers
   const filteredCenters = useMemo(() => {
-    return MOCK_CENTERS.filter(center => {
+    // 1. Filtrar
+    const filtered = MOCK_CENTERS.filter(center => {
       const matchName = center.name.toLowerCase().includes(filters.name.toLowerCase());
       const matchZone = center.zone.toLowerCase().includes(filters.zone.toLowerCase());
       const matchCode = center.code.includes(filters.code);
       return matchName && matchZone && matchCode;
     });
-  }, [filters]);
+
+    // 2. Ordenar
+    return filtered.sort((a, b) => {
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+
+        // Manejo específico para números o strings
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+  }, [filters, sortConfig]);
 
   const selectedIds = useMemo(() => new Set(selectedCenters.map(c => c.id)), [selectedCenters]);
 
   const handleAddCenter = (center: Center) => {
-    if (selectedCenters.length >= 15) {
-      alert("Has alcanzado el límite máximo de 15 centros.");
+    const MAX_CENTERS = 6;
+    if (selectedCenters.length >= MAX_CENTERS) {
+      alert(`Has alcanzado el límite máximo de ${MAX_CENTERS} centros.`);
       return;
     }
     if (selectedIds.has(center.id)) return;
@@ -108,7 +130,7 @@ const App: React.FC = () => {
           ["SOLICITUD DE CENTROS DE PRÁCTICAS"],
           ["Fecha de exportación:", new Date().toLocaleDateString()],
           [], 
-          ["Orden", "Nombre del Profesor", "DNI", "Código Centro", "Nombre del Centro", "Zona"] 
+          ["Orden", "Nombre del Profesor", "DNI", "Estado Plaza", "Código Centro", "Nombre del Centro", "Zona", "Nº Estudiantes"] 
         ];
 
         selectedCenters.forEach((center, index) => {
@@ -116,9 +138,11 @@ const App: React.FC = () => {
             index + 1,
             teacherName,
             teacherDNI,
+            center.status,
             center.code,
             center.name,
-            center.zone
+            center.zone,
+            center.students
           ]);
         });
 
@@ -126,13 +150,16 @@ const App: React.FC = () => {
         const ws = XLSX.utils.aoa_to_sheet(data);
 
         ws['!cols'] = [
-          { wch: 8 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 20 }
+          { wch: 8 }, { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 20 }, { wch: 12 }
         ];
 
         XLSX.utils.book_append_sheet(wb, ws, "Selección");
         
+        // Generar nombre de archivo: nombre_fecha.xlsx
         const safeName = teacherName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `practicas_${safeName}.xlsx`;
+        const dateObj = new Date();
+        const dateStr = dateObj.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        const fileName = `${safeName}_${dateStr}.xlsx`;
 
         // 2. Enviar a Google Apps Script (si hay URL)
         if (GOOGLE_SCRIPT_URL) {
@@ -184,6 +211,8 @@ const App: React.FC = () => {
                     centers={filteredCenters} 
                     selectedIds={selectedIds} 
                     onAdd={handleAddCenter} 
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
                 />
             </div>
         </div>

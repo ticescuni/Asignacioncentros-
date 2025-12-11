@@ -19,7 +19,7 @@ const SelectedList: React.FC<SelectedListProps> = ({
   isUploading, 
   hasBackend 
 }) => {
-  const maxCenters = 15;
+  const maxCenters = 6;
   const count = selectedCenters.length;
 
   return (
