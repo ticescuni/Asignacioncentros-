@@ -32,7 +32,8 @@ const CenterTable: React.FC<CenterTableProps> = ({
       : <ArrowDown size={14} className="ml-1 text-corporate-blue inline-block" />;
   };
 
-  const headerClass = "px-4 py-3 tracking-wider cursor-pointer hover:bg-gray-200 transition-colors select-none group";
+  // Se añade 'align-middle' para asegurar que todos los títulos estén centrados verticalmente
+  const headerClass = "px-4 py-3 tracking-wider cursor-pointer hover:bg-gray-200 transition-colors select-none group align-middle";
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col min-h-[400px]">
@@ -60,9 +61,9 @@ const CenterTable: React.FC<CenterTableProps> = ({
                 Zona {renderSortIcon('zone')}
               </th>
               <th className={`${headerClass} text-center`} onClick={() => onSort('students')}>
-                Nº Est. {renderSortIcon('students')}
+                Nº de estudiantes {renderSortIcon('students')}
               </th>
-              <th className="px-4 py-3 tracking-wider text-right cursor-default">
+              <th className="px-4 py-3 tracking-wider text-right cursor-default align-middle">
                 Acción
               </th>
             </tr>
