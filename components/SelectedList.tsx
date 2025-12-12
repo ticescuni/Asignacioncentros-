@@ -19,7 +19,7 @@ const SelectedList: React.FC<SelectedListProps> = ({
   isUploading, 
   hasBackend 
 }) => {
-  const maxCenters = 6;
+  const maxCenters = 18;
   const count = selectedCenters.length;
 
   return (
@@ -29,10 +29,10 @@ const SelectedList: React.FC<SelectedListProps> = ({
         <h3 className="font-semibold text-lg flex items-center justify-between text-corporate-dark">
           Centros Seleccionados
           <span className={`text-xs px-2 py-1 rounded-full text-white ${count === maxCenters ? 'bg-red-500' : 'bg-corporate-blue'}`}>
-            {count}/{maxCenters}
+            {count} / {maxCenters} (Máx)
           </span>
         </h3>
-        <p className="text-xs text-gray-500 mt-1">Orden de preferencia para la asignación.</p>
+        <p className="text-xs text-gray-500 mt-1">Orden de preferencia. Puede seleccionar hasta {maxCenters} centros (no obligatorio completar todos).</p>
       </div>
 
       {/* List Container */}

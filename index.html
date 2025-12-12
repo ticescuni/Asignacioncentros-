@@ -583,8 +583,7 @@
                                             <tr key={center.id} className={`hover:bg-blue-50 transition-colors ${isSelected ? 'bg-gray-50 opacity-60' : ''}`}>
                                                 <td className="px-4 py-3">
                                                     <span 
-                                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide cursor-help inline-flex items-center gap-1 ${getStatusColor(center.status)}`}
-                                                        title={center.status}
+                                                        className={`px-2 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide inline-flex items-center gap-1 ${getStatusColor(center.status)}`}
                                                     >
                                                         {center.status.split(' ')[0]} 
                                                     </span>
@@ -625,7 +624,7 @@
 
         // 5. SelectedList (Actualizado con Loading State)
         const SelectedList = ({ selectedCenters, onRemove, onMove, onExport, isUploading }) => {
-            const maxCenters = 6;
+            const maxCenters = 18;
             const count = selectedCenters.length;
 
             return (
@@ -634,10 +633,10 @@
                         <h3 className="font-semibold text-lg flex items-center justify-between text-corporate-dark">
                             Centros Seleccionados
                             <span className={`text-xs px-2 py-1 rounded-full text-white ${count === maxCenters ? 'bg-red-500' : 'bg-corporate-blue'}`}>
-                                {count}/{maxCenters}
+                                {count} / {maxCenters} (Máx)
                             </span>
                         </h3>
-                        <p className="text-xs text-gray-500 mt-1">Orden de preferencia para la asignación.</p>
+                        <p className="text-xs text-gray-500 mt-1">Orden de preferencia. Puede seleccionar hasta {maxCenters} centros (no obligatorio completar todos).</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 relative">
@@ -697,7 +696,7 @@
                         {isUploading && (
                             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center text-corporate-blue">
                                 <Loader2 size={40} className="animate-spin-custom mb-3" />
-                                <p className="font-semibold text-sm animate-pulse">Enviando...</p>
+                                <p className="font-semibold text-sm animate-pulse">Enviando a Drive...</p>
                             </div>
                         )}
                     </div>
@@ -782,7 +781,7 @@
             const selectedIds = useMemo(() => new Set(selectedCenters.map(c => c.id)), [selectedCenters]);
 
             const handleAddCenter = (center) => {
-                const MAX_CENTERS = 6;
+                const MAX_CENTERS = 18;
                 if (selectedCenters.length >= MAX_CENTERS) {
                     alert(`Has alcanzado el límite máximo de ${MAX_CENTERS} centros.`);
                     return;
@@ -887,7 +886,7 @@
                             })
                         });
                         
-                        alert("✅ Archivo enviado correctamente.");
+                        alert("✅ Archivo enviado correctamente a Google Drive.");
                     }
 
                     // 3. Descargar copia local (siempre útil como backup)

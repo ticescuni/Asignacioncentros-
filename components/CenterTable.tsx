@@ -60,7 +60,7 @@ const CenterTable: React.FC<CenterTableProps> = ({
                 Zona {renderSortIcon('zone')}
               </th>
               <th className={`${headerClass} text-center`} onClick={() => onSort('students')}>
-                Nº Estudiantes. {renderSortIcon('students')}
+                Nº Est. {renderSortIcon('students')}
               </th>
               <th className="px-4 py-3 tracking-wider text-right cursor-default">
                 Acción
@@ -78,8 +78,7 @@ const CenterTable: React.FC<CenterTableProps> = ({
                   >
                     <td className="px-4 py-3">
                       <span 
-                        className={`px-2 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide cursor-help inline-flex items-center gap-1 ${getStatusColor(center.status)}`}
-                        title={center.status}
+                        className={`px-2 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide inline-flex items-center gap-1 ${getStatusColor(center.status)}`}
                       >
                         {center.status.split(' ')[0]} {/* Muestra solo la primera palabra para ahorrar espacio si es muy largo */}
                       </span>

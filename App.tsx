@@ -70,7 +70,7 @@ const App: React.FC = () => {
   const selectedIds = useMemo(() => new Set(selectedCenters.map(c => c.id)), [selectedCenters]);
 
   const handleAddCenter = (center: Center) => {
-    const MAX_CENTERS = 6;
+    const MAX_CENTERS = 18;
     if (selectedCenters.length >= MAX_CENTERS) {
       alert(`Has alcanzado el límite máximo de ${MAX_CENTERS} centros.`);
       return;
